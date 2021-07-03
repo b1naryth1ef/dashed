@@ -1,12 +1,14 @@
 import argparse
 import asyncio
-import sys
-from dashed.discord import DiscordAPIClient
-from dashed import server
 import os
 import pathlib
-from dashed.loader import DashedContext, load_from_file
+import sys
+
 from nacl.signing import VerifyKey
+
+from dashed import server
+from dashed.discord import DiscordAPIClient
+from dashed.loader import DashedContext, load_from_file
 
 ENV_ARGS = {
     "token": "DASHED_DISCORD_TOKEN",
@@ -14,7 +16,7 @@ ENV_ARGS = {
 }
 
 
-def _get_context(args, not_required=None) -> DashedContext:
+async def _get_context(args, not_required=None) -> DashedContext:
     for k, v in ENV_ARGS.items():
         if getattr(args, k, None) is None:
             value = os.environ.get(v)
@@ -33,7 +35,7 @@ def _get_context(args, not_required=None) -> DashedContext:
 
     modules = []
     for file_path in args.load_from_file or []:
-        modules.append(load_from_file(pathlib.Path(file_path)))
+        modules.append(await load_from_file(pathlib.Path(file_path)))
 
     commands = {}
     for module in modules:
@@ -56,7 +58,7 @@ def _get_context(args, not_required=None) -> DashedContext:
 
 
 async def _register_commands(args):
-    ctx = _get_context(args, not_required={"application_key"})
+    ctx = await _get_context(args, not_required={"application_key"})
 
     if args.delete_unknown:
         existing_commands = await ctx.client.get_global_application_commands(
@@ -73,7 +75,7 @@ async def _register_commands(args):
 
 
 async def _serve(args):
-    ctx = _get_context(args)
+    ctx = await _get_context(args)
     await server.run(args.host, args.port, ctx)
     await ctx.client.close()
 

@@ -3,6 +3,10 @@ import dashed
 math = dashed.Group("math", description="do some math")
 
 
+async def initialize():
+    print("Initialize")
+
+
 @math.command(description="add some numbers")
 async def add(ctx: dashed.InteractionContext, x: int, y: int):
     return ctx.reply(content=f"{x+y}")

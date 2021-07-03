@@ -144,12 +144,15 @@ def _load_groups() -> List["Group"]:
     return _flush_registered_groups_buffer()
 
 
-def load_from_file(path: pathlib.Path) -> DashedModule:
+async def load_from_file(path: pathlib.Path) -> DashedModule:
     import importlib.machinery
 
-    importlib.machinery.SourceFileLoader(
+    module = importlib.machinery.SourceFileLoader(
         f"dashed.runtime.module.{path.stem}", str(path)
     ).load_module()
+
+    if hasattr(module, "initialize"):
+        await module.initialize()
 
     return DashedModule(
         name=path.stem, commands=_load_commands(), groups=_load_groups()
