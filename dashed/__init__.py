@@ -1,23 +1,19 @@
 from typing import List, Optional
 from .module import DashedCommand, DashedModule
-from .interaction import InteractionContext
+from .interaction import InteractionContext, DeferredInteractionContext
+from .discord import Channel, User, Role, Mentionable
 
-
-class Channel:
-    pass
-
-
-class User:
-    pass
-
-
-class Role:
-    pass
-
-
-class Mentionable:
-    pass
-
+__all__ = {
+    "command",
+    "DashedCommand",
+    "DashedModule",
+    "InteractionContext",
+    "DeferredInteractionContext",
+    "Channel",
+    "User",
+    "Role",
+    "Mentionable",
+}
 
 _registered_command_functions_buffer = []
 

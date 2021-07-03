@@ -68,9 +68,11 @@ async def main():
             assert command.name not in commands
             commands[command.name] = command
 
-    await register_slash_commands(api, int(env_opts["application_id"]), commands.values())
+    await register_slash_commands(
+        api, int(env_opts["application_id"]), commands.values()
+    )
 
-    await server.run(args.host, args.port, application_key, commands)
+    await server.run(args.host, args.port, api, application_key, commands)
 
 
 _run_in_loop(main())

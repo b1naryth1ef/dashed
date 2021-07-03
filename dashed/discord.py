@@ -2,10 +2,25 @@ import dataclasses
 import json
 from typing import List, Literal, Optional, Union
 import typing
-from dashed.module import DashedCommand, DashedModule
 from email.policy import default
 import httpx
 from enum import IntEnum
+
+
+class Channel:
+    pass
+
+
+class User:
+    pass
+
+
+class Role:
+    pass
+
+
+class Mentionable:
+    pass
 
 
 class InteractionRequestType(IntEnum):
@@ -78,6 +93,12 @@ class ApplicationCommandDescription:
     default_permission: bool = True
 
 
+@dataclasses.dataclass
+class WebhookEditBody:
+    content: Optional[str] = None
+    allowed_mentions: Optional[AllowedMentions] = None
+
+
 class DiscordAPIClient:
     def __init__(self, token):
         self._http = httpx.AsyncClient(
@@ -95,35 +116,35 @@ class DiscordAPIClient:
         r.raise_for_status()
         return r.json()
 
+    async def _patch(self, path, **kwargs):
+        r = await self._http.patch(self._url(path), **kwargs)
+        r.raise_for_status()
+        return r.json()
+
     async def create_global_command_application(self, application_id, body):
         await self._post(f"/applications/{application_id}/commands", json=body)
 
-
-def _get_application_command_description(
-    command: DashedCommand,
-) -> ApplicationCommandDescription:
-    options = []
-
-    for arg, arg_type in command.get_args().items():
-        option_type = None
-        if arg_type is str:
-            option_type = ApplicationCommandOptionType.STRING
-        else:
-            raise Exception(
-                f"Could not determine application command option type for {arg_type}"
-            )
-
-        options.append(
-            ApplicationCommandOption(type=option_type, name=arg, description=arg)
+    async def edit_original_interaction_response(
+        self, application_id, interaction_token, body
+    ):
+        await self._patch(
+            f"/webhooks/{application_id}/{interaction_token}/messages/@original",
+            json=body,
         )
 
+
+def _get_application_command_description(
+    command: "DashedCommand",
+) -> ApplicationCommandDescription:
     return ApplicationCommandDescription(
-        name=command.name, description=command.description, options=options
+        name=command.name,
+        description=command.description,
+        options=list(command.get_args().values()),
     )
 
 
 async def register_slash_commands(
-    client: DiscordAPIClient, application_id: int, commands: List[DashedCommand]
+    client: DiscordAPIClient, application_id: int, commands: List["DashedCommand"]
 ):
     for command in commands:
         await client.create_global_command_application(

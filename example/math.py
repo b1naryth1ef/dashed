@@ -1,6 +1,6 @@
 import dashed
 
 
-@dashed.command()
+@dashed.command(description="add some numbers")
 async def add(ctx: dashed.InteractionContext, x: int, y: int):
-    await ctx.reply(f"{x+y}")
+    return ctx.reply(content=f"{x+y}")
