@@ -16,25 +16,23 @@ from dashed.discord import (
 )
 
 _registered_groups_buffer = []
-_registered_command_functions_buffer = []
+_registered_commands_buffer = []
 
 
-def _flush_registered_command_functions_buffer() -> List:
-    global _registered_command_functions_buffer
-    result = _registered_command_functions_buffer
-    _registered_command_functions_buffer = []
+def _flush_registered_commands_buffer() -> List:
+    global _registered_commands_buffer
+    result = _registered_commands_buffer
+    _registered_commands_buffer = []
     return result
 
 
 def command(*, description: str, name: Optional[str] = None):
-    global _registered_command_functions_buffer
+    global _registered_commands_buffer
 
     def command_decorator(fn):
-        fn.__command_metadata__ = {
-            "name": name or fn.__name__,
-            "description": description,
-        }
-        _registered_command_functions_buffer.append(fn)
+        _registered_commands_buffer.append(
+            DashedCommand(name=name or fn.__name__, description=description, fn=fn)
+        )
         return fn
 
     return command_decorator
@@ -131,19 +129,6 @@ class DashedContext:
             )
 
 
-def _load_commands() -> List[DashedCommand]:
-    commands = []
-    for command_function in _flush_registered_command_functions_buffer():
-        commands.append(
-            DashedCommand(fn=command_function, **command_function.__command_metadata__)
-        )
-    return commands
-
-
-def _load_groups() -> List["Group"]:
-    return _flush_registered_groups_buffer()
-
-
 async def load_from_file(path: pathlib.Path) -> DashedModule:
     import importlib.machinery
 
@@ -155,7 +140,9 @@ async def load_from_file(path: pathlib.Path) -> DashedModule:
         await module.initialize()
 
     return DashedModule(
-        name=path.stem, commands=_load_commands(), groups=_load_groups()
+        name=path.stem,
+        commands=_flush_registered_commands_buffer(),
+        groups=_flush_registered_groups_buffer(),
     )
 
 
