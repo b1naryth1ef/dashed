@@ -30,6 +30,7 @@ class Channel:
     type: ChannelType
 
 
+@dataclasses.dataclass
 class User:
     id: str
     username: str
@@ -42,10 +43,12 @@ class User:
         return f"<@{self.id}>"
 
 
+@dataclasses.dataclass
 class Role:
     pass
 
 
+@dataclasses.dataclass
 class Mentionable:
     pass
 
