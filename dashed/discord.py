@@ -36,8 +36,8 @@ class User:
     username: str
     discriminator: str
     public_flags: int
-    bot: bool
     avatar: str
+    bot: bool = False
 
     def mention(self):
         return f"<@{self.id}>"
