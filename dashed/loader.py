@@ -1,5 +1,7 @@
 import inspect
+from platform import java_ver
 import typing
+
 from dashed.discord import (
     ApplicationCommandDescription,
     ApplicationCommandOption,
@@ -11,7 +13,7 @@ from dashed.discord import (
     User,
 )
 import dataclasses
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pathlib
 
@@ -45,6 +47,12 @@ def _flush_registered_groups_buffer() -> List:
     result = _registered_groups_buffer
     _registered_groups_buffer = []
     return result
+
+
+class TypeWithChoices:
+    def __init__(self, inner_type: type, choices: Dict[str, Union[str, int]]):
+        self.inner_type = inner_type
+        self.choices = choices
 
 
 @dataclasses.dataclass
@@ -197,6 +205,33 @@ def _get_application_command_description(
     )
 
 
+def _get_option_type_and_choices(
+    type_: type,
+) -> Tuple[ApplicationCommandOptionType, Optional[List[Dict[str, Any]]]]:
+    if type_ is str:
+        return ApplicationCommandOptionType.STRING, None
+    elif type_ is int:
+        return ApplicationCommandOptionType.INTEGER, None
+    elif type_ is bool:
+        return ApplicationCommandOptionType.BOOLEAN, None
+    elif type_ is User:
+        return ApplicationCommandOptionType.USER, None
+    elif type_ is Channel:
+        return ApplicationCommandOptionType.CHANNEL, None
+    elif type_ is Role:
+        return ApplicationCommandOptionType.ROLE, None
+    elif type_ is Mentionable:
+        return ApplicationCommandOptionType.MENTIONABLE, None
+    elif isinstance(type_, TypeWithChoices):
+        inner, choices = _get_option_type_and_choices(type_.inner_type)
+        assert choices is None, "cannot have nested TypeWithOptions"
+        return inner, [{"name": k, "value": v} for k, v in type_.choices.items()]
+    else:
+        raise Exception(
+            f"Could not determine application command option type for {type_}"
+        )
+
+
 def _get_command_args(command: DashedCommand) -> Dict[str, ApplicationCommandOption]:
     signature = inspect.signature(command.fn)
     type_hint = typing.get_type_hints(command.fn)
@@ -209,26 +244,12 @@ def _get_command_args(command: DashedCommand) -> Dict[str, ApplicationCommandOpt
     for arg in args:
         required = signature.parameters[arg].default is inspect.Parameter.empty
 
-        option_type = None
-        if arg_types[arg] is str:
-            option_type = ApplicationCommandOptionType.STRING
-        elif arg_types[arg] is int:
-            option_type = ApplicationCommandOptionType.INTEGER
-        elif arg_types[arg] is bool:
-            option_type = ApplicationCommandOptionType.BOOLEAN
-        elif arg_types[arg] is User:
-            option_type = ApplicationCommandOptionType.USER
-        elif arg_types[arg] is Channel:
-            option_type = ApplicationCommandOptionType.CHANNEL
-        elif arg_types[arg] is Role:
-            option_type = ApplicationCommandOptionType.ROLE
-        elif arg_types[arg] is Mentionable:
-            option_type = ApplicationCommandOptionType.MENTIONABLE
-        else:
-            raise Exception(
-                f"Could not determine application command option type for {arg_types[arg]}"
-            )
+        option_type, choices = _get_option_type_and_choices(arg_types[arg])
         opts[arg] = ApplicationCommandOption(
-            type=option_type, name=arg, description=arg, required=required
+            type=option_type,
+            name=arg,
+            description=arg,
+            required=required,
+            choices=choices,
         )
     return opts

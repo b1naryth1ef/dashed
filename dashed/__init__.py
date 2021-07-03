@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 from unittest.util import sorted_list_difference
 from .interaction import InteractionContext, DeferredInteractionContext
 from .discord import Channel, User, Role, Mentionable
-from .loader import command, Group
+from .loader import command, Group, TypeWithChoices
 
 __all__ = {
     "command",
@@ -14,4 +14,5 @@ __all__ = {
     "User",
     "Role",
     "Mentionable",
+    "TypeWithChoices",
 }
