@@ -1,5 +1,8 @@
+import dataclasses
 import inspect
+import pathlib
 import typing
+from typing import Any, Dict, List, Optional, OrderedDict, Tuple, Union
 
 from dashed.discord import (
     ApplicationCommandDescription,
@@ -11,10 +14,6 @@ from dashed.discord import (
     Role,
     User,
 )
-import dataclasses
-from typing import Any, Dict, List, Optional, Tuple, Union
-
-import pathlib
 
 _registered_groups_buffer = []
 _registered_command_functions_buffer = []
@@ -232,11 +231,11 @@ def _get_command_args(command: DashedCommand) -> Dict[str, ApplicationCommandOpt
     signature = inspect.signature(command.fn)
     type_hint = typing.get_type_hints(command.fn)
 
-    assert list(signature.parameters.keys())[0] == "ctx"
-    args = {k for k in list(signature.parameters.keys())[1:]}
+    assert list(type_hint.keys())[0] == "ctx"
+    args = {k for k in list(type_hint.keys())[1:]}
     arg_types = {k: type_hint[k] for k in args}
 
-    opts = {}
+    opts = OrderedDict()
     for arg in args:
         required = signature.parameters[arg].default is inspect.Parameter.empty
 

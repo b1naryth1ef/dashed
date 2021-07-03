@@ -36,8 +36,14 @@ async def deferred(ctx: dashed.DeferredInteractionContext, message: str):
     await ctx.update(content="It works")
 ```
 
+## registering commands
+
+```sh
+$ python -m dashed register-commands --load-from-file example/math.py --application-id ... --delete-unknown
+```
+
 ## running
 
 ```sh
-$ python -m dashed --load-from-file example/math.py --bind 0.0.0.0:8689
+$ python -m dashed serve --load-from-file example/math.py --bind 0.0.0.0:8689
 ```

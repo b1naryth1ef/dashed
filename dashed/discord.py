@@ -1,9 +1,11 @@
 import asyncio
-from dashed.embeds import Embed
 import dataclasses
-from typing import List, Literal, Optional, Union
-import httpx
 from enum import IntEnum
+from typing import List, Literal, Optional, Union
+
+import httpx
+
+from dashed.embeds import Embed
 
 
 class ChannelType(IntEnum):
