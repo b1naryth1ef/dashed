@@ -31,7 +31,15 @@ class Channel:
 
 
 class User:
-    pass
+    id: str
+    username: str
+    discriminator: str
+    public_flags: int
+    bot: bool
+    avatar: str
+
+    def mention(self):
+        return f"<@{self.id}>"
 
 
 class Role:

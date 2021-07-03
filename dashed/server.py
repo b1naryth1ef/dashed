@@ -1,16 +1,19 @@
 import asyncio
-from dashed.interaction import DeferredInteractionContext, InteractionContext
+import json
 from typing import Any, Dict, List
-from dashed.loader import DashedContext, _get_command_args
+
+from aiohttp import web
+from nacl.exceptions import BadSignatureError
+
 from dashed.discord import (
     ApplicationCommandOptionType,
     Channel,
     InteractionRequestType,
     InteractionResponseType,
+    User,
 )
-import json
-from aiohttp import web
-from nacl.exceptions import BadSignatureError
+from dashed.interaction import DeferredInteractionContext, InteractionContext
+from dashed.loader import DashedContext, _get_command_args
 
 
 def respond_json(data) -> web.Response:
@@ -28,6 +31,10 @@ def _get_options_data(
         if option["type"] == ApplicationCommandOptionType.CHANNEL:
             result[option["name"]] = Channel(
                 **command_data["resolved"]["channels"][option["value"]]
+            )
+        elif option["type"] == ApplicationCommandOptionType.USER:
+            result[option["name"]] = User(
+                **command_data["resolved"]["users"][option["value"]]
             )
         else:
             result[option["name"]] = option["value"]
