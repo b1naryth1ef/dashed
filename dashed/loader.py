@@ -1,5 +1,4 @@
 import inspect
-from platform import java_ver
 import typing
 
 from dashed.discord import (

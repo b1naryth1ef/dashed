@@ -1,11 +1,9 @@
-import dataclasses
-from typing import Any, List, Optional
-from unittest.util import sorted_list_difference
 from .interaction import InteractionContext, DeferredInteractionContext
 from .discord import Channel, User, Role, Mentionable
 from .loader import command, Group, TypeWithChoices
+from .embeds import Embed, EmbedField
 
-__all__ = {
+__all__ = [
     "command",
     "Group",
     "InteractionContext",
@@ -15,4 +13,6 @@ __all__ = {
     "Role",
     "Mentionable",
     "TypeWithChoices",
-}
+    "Embed",
+    "EmbedField",
+]

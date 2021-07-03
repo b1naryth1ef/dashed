@@ -1,5 +1,6 @@
+from dashed.embeds import Embed
 import dataclasses
-from typing import Dict, List, Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 import httpx
 from enum import IntEnum
 
@@ -76,7 +77,7 @@ class AllowedMentions:
 class ApplicationCommandCallbackData:
     tts: Optional[bool] = None
     content: Optional[str] = None
-    embeds: Optional[List] = None
+    embeds: Optional[List[Embed]] = None
     allowed_mentions: Optional[AllowedMentions] = None
     flags: Optional[int] = None
     components: Optional[List] = None
@@ -112,6 +113,7 @@ class ApplicationCommandDescription:
 class WebhookEditBody:
     content: Optional[str] = None
     allowed_mentions: Optional[AllowedMentions] = None
+    embeds: Optional[List[Embed]] = None
 
 
 class DiscordAPIClient:

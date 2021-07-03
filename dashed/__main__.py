@@ -55,8 +55,6 @@ async def main():
 
             env_opts[k] = value
 
-    application_key = bytes.fromhex(env_opts["application_key"])
-
     api = DiscordAPIClient(token=env_opts["token"])
 
     modules = []
