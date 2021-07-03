@@ -1,4 +1,6 @@
 import argparse
+import asyncio
+from dashed.discord import DiscordAPIClient, register_slash_commands
 from dashed import server
 import os
 import pathlib
@@ -7,6 +9,7 @@ from dashed.loader import load_from_file
 ENV_ARGS = {
     "token": "DASHED_DISCORD_TOKEN",
     "application_key": "DASHED_DISCORD_APPLICATION_KEY",
+    "application_id": "DASHED_DISCORD_APPLICATION_ID",
 }
 
 
@@ -24,15 +27,19 @@ parser.add_argument(
 parser.add_argument("--port", default=8689, type=int, help="The port to bind on")
 parser.add_argument("--token", help="Discord Bot Token")
 parser.add_argument("--application-key", help="Discord Application Key")
+parser.add_argument("--application-id", help="Discord Application ID")
 
 
-def main():
+def _run_in_loop(fn):
+    event_loop = asyncio.get_event_loop()
+    try:
+        event_loop.run_until_complete(fn)
+    finally:
+        event_loop.close()
+
+
+async def main():
     args = parser.parse_args()
-    print(args)
-
-    modules = []
-    for file_path in args.load_from_file:
-        modules.append(load_from_file(pathlib.Path(file_path)))
 
     env_opts = {}
     for k, v in ENV_ARGS.items():
@@ -49,8 +56,21 @@ def main():
 
     application_key = bytes.fromhex(env_opts["application_key"])
 
-    print(modules)
-    server.run(args.host, args.port, application_key)
+    api = DiscordAPIClient(token=env_opts["token"])
+
+    modules = []
+    for file_path in args.load_from_file:
+        modules.append(load_from_file(pathlib.Path(file_path)))
+
+    commands = {}
+    for module in modules:
+        for command in module.commands:
+            assert command.name not in commands
+            commands[command.name] = command
+
+    await register_slash_commands(api, int(env_opts["application_id"]), commands.values())
+
+    await server.run(args.host, args.port, application_key, commands)
 
 
-main()
+_run_in_loop(main())

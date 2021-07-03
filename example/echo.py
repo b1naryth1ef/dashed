@@ -1,6 +1,6 @@
 import dashed
 
 
-@dashed.command()
+@dashed.command(description="It's like an echo chamber in here!")
 async def echo(ctx: dashed.InteractionContext, message: str):
-    await ctx.reply(message)
+    return ctx.reply(content=message)

@@ -8,6 +8,7 @@ authors = ["andrei <b1naryth1ef@gmail.com>"]
 python = "^3.8"
 aiohttp = "^3.7.4"
 PyNaCl = "^1.4.0"
+httpx = "^0.18.2"
 
 [tool.poetry.dev-dependencies]
 

@@ -1,9 +1,7 @@
+from dashed.module import DashedCommand, DashedModule
 from typing import List
-from dashed import (
-    DashedCommand,
-    DashedModule,
-    _flush_registered_command_functions_buffer,
-)
+from dashed import _flush_registered_command_functions_buffer
+
 import pathlib
 from importlib import util
 

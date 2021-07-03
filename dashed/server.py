@@ -1,3 +1,7 @@
+from dashed.interaction import InteractionContext
+from typing import Dict
+from dashed.module import DashedCommand
+from dashed.discord import InteractionRequestType, InteractionResponseType
 import json
 from aiohttp import web
 from nacl.signing import VerifyKey
@@ -26,14 +30,28 @@ async def handle_interactions_request(request):
     data = json.loads(body)
     print(data)
 
-    if data["type"] == 1:
-        return respond_json({"type": 1})
+    if data["type"] == InteractionRequestType.PING:
+        return respond_json({"type": InteractionResponseType.PONG})
+    elif data["type"] == InteractionRequestType.APPLICATION_COMMAND:
+        command_data = data["data"]
+
+        target_command = request.app["commands"].get(command_data["name"])
+        if not target_command:
+            return web.Response(text="unknown command", status=400)
+
+        options = {i["name"]: i["value"] for i in command_data["options"]}
+        args = {k: options[k] for k in target_command.get_args().keys()}
+        result = await target_command.fn(InteractionContext(), **args)
+        return respond_json(result)
 
     return respond_json({})
 
 
-def run(host: str, port: int, application_key: bytes):
+async def run(
+    host: str, port: int, application_key: bytes, commands: Dict[str, DashedCommand]
+):
     app = web.Application()
     app["application_key"] = VerifyKey(application_key)
+    app["commands"] = commands
     app.add_routes([web.post("/interactions", handle_interactions_request)])
-    web.run_app(app, host=host, port=port)
+    await web._run_app(app, host=host, port=port)
