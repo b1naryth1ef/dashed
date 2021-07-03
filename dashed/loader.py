@@ -113,26 +113,23 @@ class DashedModule:
 @dataclasses.dataclass
 class DashedContext:
     client: DiscordAPIClient
-    application_id: str
     application_key: str
     commands: Dict[str, DashedCommand]
     groups: Dict[str, Group]
 
-    async def register_commands(self, commands: List[DashedCommand]):
-        for command in commands:
-            await self.client.create_global_command_application(
-                self.application_id,
+    async def register_commands(self, application_id):
+        for command in self.commands.values():
+            await self.client.create_global_application_command(
+                application_id,
                 dataclasses.asdict(_get_application_command_description(command)),
             )
-            self.commands[command.name] = command
 
-    async def register_groups(self, groups: List[Group]):
-        for group in groups:
-            await self.client.create_global_command_application(
-                self.application_id,
+    async def register_groups(self, application_id):
+        for group in self.groups.values():
+            await self.client.create_global_application_command(
+                application_id,
                 dataclasses.asdict(_get_application_group_description(group)),
             )
-            self.groups[group.name] = group
 
 
 def _load_commands() -> List[DashedCommand]:

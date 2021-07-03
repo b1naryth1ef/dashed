@@ -1,3 +1,4 @@
+import asyncio
 from dashed.embeds import Embed
 import dataclasses
 from typing import List, Literal, Optional, Union
@@ -125,25 +126,50 @@ class DiscordAPIClient:
             }
         )
 
+    async def close(self):
+        await self._http.aclose()
+
     def _url(self, path):
         return f"https://discord.com/api/v8{path}"
 
-    async def _post(self, path, **kwargs):
-        r = await self._http.post(self._url(path), **kwargs)
+    async def _check(self, response):
+        if "X-RateLimit-Reset-After" in response.headers:
+            if int(response.headers["X-RateLimit-Remaining"]) == 0:
+                await asyncio.sleep(float(response.headers["X-RateLimit-Reset-After"]))
+
         try:
-            r.raise_for_status()
+            response.raise_for_status()
         except Exception:
-            print(r.json())
+            print("Response: ", response.json())
             raise
+
+    async def _get(self, path):
+        r = await self._http.get(self._url(path))
+        await self._check(r)
         return r.json()
 
     async def _patch(self, path, **kwargs):
         r = await self._http.patch(self._url(path), **kwargs)
-        r.raise_for_status()
+        await self._check(r)
         return r.json()
 
-    async def create_global_command_application(self, application_id, body):
+    async def _post(self, path, **kwargs):
+        r = await self._http.post(self._url(path), **kwargs)
+        await self._check(r)
+        return r.json()
+
+    async def _delete(self, path):
+        r = await self._http.delete(self._url(path))
+        await self._check(r)
+
+    async def get_global_application_commands(self, application_id):
+        return await self._get(f"/applications/{application_id}/commands")
+
+    async def create_global_application_command(self, application_id, body):
         return await self._post(f"/applications/{application_id}/commands", json=body)
+
+    async def delete_global_application_command(self, application_id, command_id):
+        await self._delete(f"/applications/{application_id}/commands/{command_id}")
 
     async def edit_original_interaction_response(
         self, application_id, interaction_token, body
