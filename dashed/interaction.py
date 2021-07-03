@@ -1,17 +1,17 @@
 import asyncio
+from dashed.loader import DashedContext
 import dataclasses
 from typing import Any, Dict
 from .discord import (
     ApplicationCommandCallbackData,
-    DiscordAPIClient,
     InteractionResponseType,
     WebhookEditBody,
 )
 
 
 class InteractionContext:
-    def __init__(self, api: DiscordAPIClient, data: Dict[str, Any]):
-        self.api = api
+    def __init__(self, ctx: DashedContext, data: Dict[str, Any]):
+        self.ctx = ctx
         self.data = data
 
     def reply(self, **kwargs):
@@ -32,15 +32,15 @@ class DeferredInteractionContext:
         self.original_interaction_context = original_interaction_context
 
     @property
-    def api(self):
-        return self.original_interaction_context.api
+    def ctx(self):
+        return self.original_interaction_context.ctx
 
     @property
     def data(self):
         return self.original_interaction_context.data
 
     async def update(self, **kwargs):
-        await self.api.edit_original_interaction_response(
+        await self.ctx.client.edit_original_interaction_response(
             self.data["application_id"],
             self.data["token"],
             dataclasses.asdict(WebhookEditBody(**kwargs)),

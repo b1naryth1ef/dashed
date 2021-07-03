@@ -1,10 +1,11 @@
 import argparse
 import asyncio
-from dashed.discord import DiscordAPIClient, register_slash_commands
+from dashed.discord import DiscordAPIClient
 from dashed import server
 import os
 import pathlib
-from dashed.loader import load_from_file
+from dashed.loader import DashedContext, load_from_file
+from nacl.signing import VerifyKey
 
 ENV_ARGS = {
     "token": "DASHED_DISCORD_TOKEN",
@@ -65,14 +66,25 @@ async def main():
     commands = {}
     for module in modules:
         for command in module.commands:
-            assert command.name not in commands
             commands[command.name] = command
 
-    await register_slash_commands(
-        api, int(env_opts["application_id"]), commands.values()
+    groups = {}
+    for module in modules:
+        for group in module.groups:
+            groups[group.name] = group
+
+    ctx = DashedContext(
+        client=api,
+        application_id=env_opts["application_id"],
+        application_key=VerifyKey(bytes.fromhex(env_opts["application_key"])),
+        commands=commands,
+        groups=groups,
     )
 
-    await server.run(args.host, args.port, api, application_key, commands)
+    await ctx.register_commands(commands.values())
+    await ctx.register_groups(groups.values())
+
+    await server.run(args.host, args.port, ctx)
 
 
 _run_in_loop(main())

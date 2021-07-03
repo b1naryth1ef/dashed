@@ -7,6 +7,12 @@ async def echo(ctx: dashed.InteractionContext, message: str):
     return ctx.reply(content=message)
 
 
+@dashed.command(description="Deferred by default")
+async def deferred(ctx: dashed.DeferredInteractionContext, message: str):
+    await asyncio.sleep(5)
+    await ctx.update(content="It works")
+
+
 @dashed.command(description="Suprise")
 async def boo(ctx: dashed.InteractionContext):
     async def later(ctx: dashed.DeferredInteractionContext):

@@ -1,14 +1,29 @@
 import dataclasses
-import json
-from typing import List, Literal, Optional, Union
-import typing
-from email.policy import default
+from typing import Dict, List, Literal, Optional, Union
 import httpx
 from enum import IntEnum
 
 
+class ChannelType(IntEnum):
+    GUILD_TEXT = 0
+    DM = 1
+    GUILD_VOICE = 2
+    GROUP_DM = 3
+    GUILD_CATEGORY = 4
+    GUILD_NEWS = 5
+    GUILD_STORE = 6
+    GUILD_NEWS_THREAD = 10
+    GUILD_PUBLIC_THREAD = 11
+    GUILD_PRIVATE_THREAD = 12
+    GUILD_STAGE_VOICE = 13
+
+
+@dataclasses.dataclass
 class Channel:
-    pass
+    id: str
+    name: str
+    permissions: str
+    type: ChannelType
 
 
 class User:
@@ -113,7 +128,11 @@ class DiscordAPIClient:
 
     async def _post(self, path, **kwargs):
         r = await self._http.post(self._url(path), **kwargs)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except Exception:
+            print(r.json())
+            raise
         return r.json()
 
     async def _patch(self, path, **kwargs):
@@ -122,32 +141,12 @@ class DiscordAPIClient:
         return r.json()
 
     async def create_global_command_application(self, application_id, body):
-        await self._post(f"/applications/{application_id}/commands", json=body)
+        return await self._post(f"/applications/{application_id}/commands", json=body)
 
     async def edit_original_interaction_response(
         self, application_id, interaction_token, body
     ):
-        await self._patch(
+        return await self._patch(
             f"/webhooks/{application_id}/{interaction_token}/messages/@original",
             json=body,
-        )
-
-
-def _get_application_command_description(
-    command: "DashedCommand",
-) -> ApplicationCommandDescription:
-    return ApplicationCommandDescription(
-        name=command.name,
-        description=command.description,
-        options=list(command.get_args().values()),
-    )
-
-
-async def register_slash_commands(
-    client: DiscordAPIClient, application_id: int, commands: List["DashedCommand"]
-):
-    for command in commands:
-        await client.create_global_command_application(
-            application_id,
-            dataclasses.asdict(_get_application_command_description(command)),
         )

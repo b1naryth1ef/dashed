@@ -1,14 +1,15 @@
-from dashed.interaction import InteractionContext
-from typing import Dict
-from dashed.module import DashedCommand
+import asyncio
+from dashed.interaction import DeferredInteractionContext, InteractionContext
+from typing import Any, Dict, List
+from dashed.loader import DashedContext, _get_command_args
 from dashed.discord import (
-    DiscordAPIClient,
+    ApplicationCommandOptionType,
+    Channel,
     InteractionRequestType,
     InteractionResponseType,
 )
 import json
 from aiohttp import web
-from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
 
@@ -18,6 +19,21 @@ def respond_json(data) -> web.Response:
     )
 
 
+def _get_options_data(
+    command_data: Dict[str, Any], options: List[Any]
+) -> Dict[str, Any]:
+    result = {}
+
+    for option in options:
+        if option["type"] == ApplicationCommandOptionType.CHANNEL:
+            result[option["name"]] = Channel(
+                **command_data["resolved"]["channels"][option["value"]]
+            )
+        else:
+            result[option["name"]] = option["value"]
+    return result
+
+
 async def handle_interactions_request(request):
     signature = request.headers.get("X-Signature-Ed25519")
     timestamp = request.headers.get("X-Signature-Timestamp")
@@ -25,7 +41,7 @@ async def handle_interactions_request(request):
     body = await request.read()
 
     try:
-        request.app["application_key"].verify(
+        request.app["ctx"].application_key.verify(
             timestamp.encode("utf-8") + body, bytes.fromhex(signature)
         )
     except BadSignatureError:
@@ -38,30 +54,44 @@ async def handle_interactions_request(request):
     elif data["type"] == InteractionRequestType.APPLICATION_COMMAND:
         command_data = data["data"]
 
-        target_command = request.app["commands"].get(command_data["name"])
-        if not target_command:
+        target_command = None
+        options_data = None
+        if command_data["name"] in request.app["ctx"].commands:
+            target_command = request.app["ctx"].commands[command_data["name"]]
+            options_data = command_data.get("options", [])
+        elif command_data["name"] in request.app["ctx"].groups:
+            target_command, options_data = (
+                request.app["ctx"]
+                .groups[command_data["name"]]
+                .lookup(command_data["options"])
+            )
+        else:
+            print("No target command", data)
             return web.Response(text="unknown command", status=400)
 
-        options = {i["name"]: i["value"] for i in command_data.get("options", [])}
-        args = {k: options[k] for k in target_command.get_args().keys()}
-        result = await target_command.fn(
-            InteractionContext(request.app["api"], data), **args
-        )
+        options = _get_options_data(command_data, options_data)
+        args = {k: options[k] for k in _get_command_args(target_command).keys()}
+
+        interaction_context = InteractionContext(request.app["ctx"], data)
+
+        if target_command.deferred:
+            asyncio.ensure_future(
+                target_command.fn(
+                    DeferredInteractionContext(interaction_context), **args
+                )
+            )
+            return respond_json(
+                {"type": InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE}
+            )
+
+        result = await target_command.fn(interaction_context, **args)
         return respond_json(result)
 
     return respond_json({})
 
 
-async def run(
-    host: str,
-    port: int,
-    api: DiscordAPIClient,
-    application_key: bytes,
-    commands: Dict[str, DashedCommand],
-):
+async def run(host: str, port: int, ctx: DashedContext):
     app = web.Application()
-    app["api"] = api
-    app["application_key"] = VerifyKey(application_key)
-    app["commands"] = commands
+    app["ctx"] = ctx
     app.add_routes([web.post("/interactions", handle_interactions_request)])
     await web._run_app(app, host=host, port=port)
